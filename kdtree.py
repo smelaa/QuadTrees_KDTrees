@@ -1,79 +1,81 @@
-import numpy as np
+class KDTNode:
+    def __init__(self, value, no_points=1):
+        self.value = value
+        self.no_points = no_points
+        self.left = None
+        self.right = None
+
 class OrthagonalRange:
-    def __init__(self, x1,x2,y1,y2):
-        self.x1=min(x1,x2)
-        self.x2=max(x1,x2)
+    def __init__(self, x1, x2, y1, y2):
+        self.x1 = min(x1, x2)
+        self.x2 = max(x1, x2)
         self.y1 = min(y1, y2)
         self.y2 = max(y1, y2)
-    def is_in(self, range):
-        return self.x1>=range.x1 and self.x2<=range.x2 and self.y1>=range.y1 and self.y2<=range.y2
-    def intersect(self,range):
-        if range.x1>self.x2 or range.x2<self.x1 or range.y1>self.y2 or range.y2<self.y1:
+
+    def intersect(self, obj: KDTNode):
+        if obj.no_points == 1:
+            return True
+        ran = obj.value
+        if ran.x1 > self.x2 or ran.x2 < self.x1 or ran.y1 > self.y2 or ran.y2 < self.y1:
             return False
         return True
 
+    def contain(self, obj: KDTNode):
+        if obj.no_points == 1:
+            x = obj.value[0]
+            y = obj.value[1]
+            return self.x1 <= x <= self.x2 and self.y1 <= y <= self.y2
+        ran = obj.value
+        return self.x1 <= ran.x1 and self.x2 >= ran.x2 and self.y1 <= ran.y1 and self.y2 >= ran.y2
 
-class Point:
-    def __init__(self,x,y):
-        self.x=x
-        self.y=y
-    def is_in(self, range: OrthagonalRange):
-        return range.x1<=self.x<=range.x2 and range.y1<=self.y<=range.y2
+    def to_list(self):
+        return [[(self.x1, self.y1), (self.x1, self.y2)], [(self.x2, self.y1), (self.x2, self.y2)],
+                [(self.x1, self.y1), (self.x2, self.y1)], [(self.x1, self.y2), (self.x2, self.y2)]]
 
-class KDTNode:
-    def __init__(self, value, no_points=1):
-        self.value=value
-        self.no_points=no_points
-        self.left=None
-        self.right=None
 
 class KDTree:
-    def __init__(self, points, range, depth=0):
-        if len(points)==0: raise IndexError("KDTree cannot be empty")
-        if len(points)==1:
-            self.root=KDTNode(points[0])
+    def __init__(self, points, ran, depth=0):
+        if len(points) == 0: raise IndexError("KDTree cannot be empty")
+        if len(points) == 1:
+            self.root = KDTNode(points[0])
         else:
-            k=len(points)//2
-            if depth%2==0:
-                part_points=np.partition(points,k, 1)
-                new_y=(part_points[k][1]-part_points[k+1][1])/2
-                new_range=(range.x1,range.x2,min(range.y1, new_y),max(range.y2,new_y))
+            if ran == None:
+                ran = OrthagonalRange(min(P, key=lambda point: point[0])[0], max(P, key=lambda point: point[0])[0],
+                                      min(P, key=lambda point: point[1])[1], max(P, key=lambda point: point[1])[1])
+            k = len(points) // 2 - 1
+            if depth % 2 == 0:
+                points.sort(key=lambda point: point[1])
+                new_y = (points[k][1] + points[k + 1][1]) / 2
+                left_range = OrthagonalRange(ran.x1, ran.x2, ran.y1, new_y)
+                right_range = OrthagonalRange(ran.x1, ran.x2, new_y, ran.y2)
             else:
-                part_points = np.partition(points, k, 0)
-                new_x = (part_points[k][0] - part_points[k + 1][0]) / 2
-                new_range = (min(range.x1,new_x), max(range.x2,new_x), range.y1,range.y2)
-            self.root=KDTNode(new_range, len(points))
-            self.root.left=KDTree(points[:k+1],depth+1)
-            self.root.right=KDTree(points[k+1:],depth+1)
+                points.sort(key=lambda point: point[0])
+                new_x = (points[k][0] + points[k + 1][0]) / 2
+                left_range = OrthagonalRange(ran.x1, new_x, ran.y1, ran.y2)
+                right_range = OrthagonalRange(new_x, ran.x2, ran.y1, ran.y2)
+            self.root = KDTNode(ran, len(points))
+            self.root.left = KDTree(points[:k + 1], left_range, depth + 1)
+            self.root.right = KDTree(points[k + 1:], right_range, depth + 1)
 
     def leaves(self):
         if self.root.no_points == 1:
             return [self.root.value]
-        return self.root.left.leaves+self.root.right.leaves
+        return self.root.left.leaves() + self.root.right.leaves()
 
     def search(self, R: OrthagonalRange):
-        if self.root.no_points==1:
-            if self.root.value.is_in(R):
+        if self.root.no_points == 1:
+            if R.contain(self.root):
                 return [self.root.value]
             return []
-        result=[]
-        left=self.root.left
-        right=self.root.right
-        if left.root.value.is_in(R):
-            result=result+left.leaves
-        elif left.root.value.intersect(R):
-            result=result+left.search(R)
-        if right.root.value.is_in(R):
-            result=result+right.leaves
-        elif right.root.value.intersect(R):
-            result=result+right.search(R)
+        result = []
+        left = self.root.left
+        right = self.root.right
+        if R.contain(left.root):
+            result = result + left.leaves()
+        elif R.intersect(left.root):
+            result = result + left.search(R)
+        if R.contain(right.root):
+            result = result + right.leaves()
+        elif R.intersect(right.root):
+            result = result + right.search(R)
         return result
-
-
-
-
-
-
-
-
-
