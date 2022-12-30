@@ -24,19 +24,18 @@ def generate_square(size, ll, ru):
     arr = []
     for i in range(size):
         side = random.choice((0, 1, 2, 3))
-        match side:
-            case 0: # górna
-                x = random.uniform(ll[0], ru[0])
-                y = ru[1]
-            case 1: # prawa
-                x = ru[0]
-                y = random.uniform(ll[1], ru[1])
-            case 2: # lewa
-                x = ll[0]
-                y = random.uniform(ll[1], ru[1])
-            case 3: # dolna
-                x = random.uniform(ll[0], ru[0])
-                y = ll[1]
+        if side == 0: # górna
+            x = random.uniform(ll[0], ru[0])
+            y = ru[1]
+        elif side == 1: # prawa
+            x = ru[0]
+            y = random.uniform(ll[1], ru[1])
+        elif side == 2: # lewa
+            x = ll[0]
+            y = random.uniform(ll[1], ru[1])
+        elif side == 3: # dolna
+            x = random.uniform(ll[0], ru[0])
+            y = ll[1]
         arr.append((x, y))
     return arr
 
