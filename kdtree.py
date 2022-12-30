@@ -34,14 +34,14 @@ class OrthagonalRange:
 
 
 class KDTree:
-    def __init__(self, points, ran, depth=0):
+    def __init__(self, points, ran=None, depth=0):
         if len(points) == 0: raise IndexError("KDTree cannot be empty")
         if len(points) == 1:
             self.root = KDTNode(points[0])
         else:
             if ran == None:
-                ran = OrthagonalRange(min(P, key=lambda point: point[0])[0], max(P, key=lambda point: point[0])[0],
-                                      min(P, key=lambda point: point[1])[1], max(P, key=lambda point: point[1])[1])
+                ran = OrthagonalRange(min(points, key=lambda point: point[0])[0], max(points, key=lambda point: point[0])[0],
+                                      min(points, key=lambda point: point[1])[1], max(points, key=lambda point: point[1])[1])
             k = len(points) // 2 - 1
             if depth % 2 == 0:
                 points.sort(key=lambda point: point[1])
